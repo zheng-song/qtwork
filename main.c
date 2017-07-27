@@ -35,39 +35,87 @@ void insert_sort(int array[],int num)
  *  ...
  */
 
+//void bubble_sort(int array[],int num)
+//{
+//    int tmp,i,j,flags=1;
+//    for(j=num-1; j> 0; --j)
+//    {
+//        if(flags)
+//        {
+//            flags = 0;
+//            for(i=0;i<j;++i)
+//            {
+//                if(array[i] > array[i+1])
+//                {
+//                    tmp = array[i];
+//                    array[i] = array[i+1];
+//                    array[i+1] = tmp;
+//                    flags = 1;
+//                }
+
+//            }
+//        }
+//        else
+//        {
+//            printf("j=%d\n",j);
+//            break;
+//        }
+//    }
+//}
+/*改进的冒泡算法*/
 void bubble_sort(int array[],int num)
 {
-    int tmp,i,j,flags=1;
-    for(j=num-1; j> 0; --j)
+    int m,i,a,bound = num;
+    while(bound)
     {
-        if(flags)
+        m = 0;
+        for(i=0;i<bound;++i)
         {
-            flags = 0;
-            for(i=0;i<j;++i)
+            if(*(array+i) > *(array+i+1) )
             {
-                if(array[i] > array[i+1])
-                {
-                    tmp = array[i];
-                    array[i] = array[i+1];
-                    array[i+1] = tmp;
-                    flags = 1;
-                }
-
+                a = *(array+i);
+                *(array+i) = *(array+i+1);
+                *(array+i+1) = a;
+                m=i;
             }
         }
-        else
-        {
-            printf("breaknow");
-            break;
-        }
-
+        bound = m;
     }
+
+}
+
+
+/*
+ *快速排序
+ *  也叫分划交换排序，采用分治策略
+ *  1.以任意a[i]为基准，将数据划分为a[low]~a[i]
+ *和a[i]~a[high]两个部分,通常取i=(high+low)/2
+ *且满足左边的都小于a[i],右边的都大于a[i].
+ *  2.a[i]左右的两个子区间都可以进行单独的排序，可以
+ *递归调用快速排序
+*/
+void quick_sort(int array[],int num)
+{
+    int low ,high,tmp,i ;
+    low =0;
+    high = num-1;
+    i=(low+high)/2;
+
+    if(array[low]>array[i])
+    {
+        tmp = array[low];
+        array[low] = array[i];
+        array[i] = tmp;
+    }
+
+
+
 }
 
 
 int main(int argc, char const *argv[])
 {
-    int a[]={2,5,6,1,3,8,5,7,3,2};
+    int a[]={9,1,5,7,8};
 //    insert_sort(a,10);
 
 //    for (int i = 0; i < 10; ++i)
@@ -75,9 +123,9 @@ int main(int argc, char const *argv[])
 
 //    printf("\n");
 
-    bubble_sort(a,10);
+    bubble_sort(a,5);
 
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 5; ++i)
         printf("%d\t",a[i]);
     printf("\n");
     return 0;
