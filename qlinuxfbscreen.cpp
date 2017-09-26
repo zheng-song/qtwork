@@ -40,9 +40,6 @@
 #include <qimage.h>
 #include <qdebug.h>
 
-#include <5.4.1/QtGui/private/qimage_p.h>
-
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -378,27 +375,9 @@ bool QLinuxFbScreen::initialize()
     mDepth = determineDepth(vinfo);
     mBytesPerLine = finfo.line_length;
     QRect geometry = determineGeometry(vinfo, userGeometry);
-
+    mGeometry = QRect(QPoint(0, 0), geometry.size());
     mFormat = determineFormat(vinfo, mDepth);
     mPhysicalSize = determinePhysicalSize(vinfo, userMmSize, geometry.size());
-
-    //mFbGeometry = QRect(QPoint(0, 0), geometry.size());
-	bool rotation90 = qgetenv("QT_QPA_FB_ROTATION90").toInt();
-	bool rotation270 = qgetenv("QT_QPA_FB_ROTATION270").toInt();
-	if (rotation90 ||rotation270) {
-		if(rotation90)
-	 		rotate = 1;
-		else
-			rotate = 3;
-		mGeometry = QRect(0,0,geometry.height(),geometry.width());
-		qreal w = mPhysicalSize.height();
-		qreal h = mPhysicalSize.width();
-		mPhysicalSize.setWidth(w);
-		mPhysicalSize.setHeight(h);
-	} else {
-		rotate = 0;
-		mGeometry = QRect(0,0,geometry.width(),geometry.height());
-	}
 
     // mmap the framebuffer
     mMmap.size = finfo.smem_len;
@@ -445,113 +424,6 @@ bool QLinuxFbScreen::initialize()
     return true;
 }
 
-//success return 0 ; failed return -1
-//exchange red and blue color
-static void MyCopyImage(QImage *srcImage, QImage *destImage, const QRect &r)
-{
-	int w, h;
-	int src_line, dst_line;
-	uchar *dst, *src;
-
-	if(srcImage == NULL|| destImage == NULL)
-	{
-		printf("NULL image!\n");
-		return;
-	}
-	
-	src = srcImage->data_ptr()->data;
-	dst = destImage->data_ptr()->data;
-	src_line = srcImage->data_ptr()->bytes_per_line;
-	dst_line = destImage->data_ptr()->bytes_per_line;
-
-	src += src_line*r.y()+ r.x()*3;
-	dst += dst_line*r.y() + r.x()*3;
-	
-	w = r.width();
-	h = r.height();
-	while(h-- > 0)
-	{
-		//memcpy(dst, src, w*4);
-
-		for(int i =0; i < w*3; i += 3)
-		{
-			dst[i]   = src[i+2];
-			dst[i+1] = src[i+1];
-			dst[i+2] = src[i];
-			
-		}
-		dst += src_line;
-		src += dst_line;
-	}
-	return;
-}
-
-static int MyCopyImage_90(QImage *srcImage, QImage *destImage, const QRect &r, int antiClockwise)
-{
-	//int w, h;
-	uchar *dst, *src;
-	int src_line, dst_line;
-	int dx,dy,x,y,w,h;
-
-	if(destImage == NULL) {
-		printf("NULL image!\n");
-		return -1;
-	}
-
-	x = r.x();
-	y = r.y();
-	w = r.width();
-	h = r.height();
-	src = srcImage->data_ptr()->data;
-	dst = destImage->data_ptr()->data;
-	src_line = srcImage->data_ptr()->bytes_per_line;
-	dst_line = destImage->data_ptr()->bytes_per_line;
-
-	if(antiClockwise)
-	{
-		dx = r.y();
-		dy = destImage->height() - x - w;
-		x += w - 1;
-	}else{
-		dx = destImage->width() - y - h;
-		dy = x;
-		y += h - 1;
-	}
-
-	//printf("%s w and h is : %d ; %d \n", "src", srcImage->width(), srcImage->height());
-	//printf("%s w and h is : %d ; %d \n", "dst", destImage->width(), destImage->height());
-	
-	
-
-	src += src_line*y + x*3;
-	dst += dst_line*dy + dx*3;
-	int dst_h = r.width();
-	int dst_w = r.height();
-	
-	if(!antiClockwise)
-		src_line = -src_line;
-	while(dst_h-- >0)
-	{
-		uchar *src2 = src;
-		for(int i =0; i < dst_w*3; i += 3)
-		{
-			dst[i]   = src2[2];
-			dst[i+1] = src2[1];
-			dst[i+2] = src2[0];
-
-			src2 += src_line;
-		}
-		dst += dst_line;
-		if(antiClockwise)
-			src -= 3;
-		else
-			src += 3;
-	}
-	
-	return 0;
-}	
-
-
 QRegion QLinuxFbScreen::doRedraw()
 {
     QRegion touched = QFbScreen::doRedraw();
@@ -559,31 +431,12 @@ QRegion QLinuxFbScreen::doRedraw()
     if (touched.isEmpty())
         return touched;
 
-    //if (!mBlitter)
-    //    mBlitter = new QPainter(&mFbScreenImage);
+    if (!mBlitter)
+        mBlitter = new QPainter(&mFbScreenImage);
 
     QVector<QRect> rects = touched.rects();
-	/*
-	for (int i = 0; i < rects.size(); i++)
-		mBlitter->drawImage(rects[i], *mScreenImage, rects[i]);
-        */
-    
     for (int i = 0; i < rects.size(); i++)
-	{
-		switch(rotate)
-		{
-			case 0:
-				MyCopyImage(mScreenImage, &mFbScreenImage, rects[i]);
-				break;
-			case 1: 
-				MyCopyImage_90(mScreenImage, &mFbScreenImage, rects[i], 1);
-				break;
-			case 3:
-				MyCopyImage_90(mScreenImage, &mFbScreenImage, rects[i], 0);
-				break;
-		}
-    }
-    //MyCopyImage2(&mFbScreenImage);
+        mBlitter->drawImage(rects[i], *mScreenImage, rects[i]);
     return touched;
 }
 
