@@ -378,13 +378,11 @@ bool QLinuxFbScreen::initialize()
     mBytesPerLine = finfo.line_length;
     QRect geometry = determineGeometry(vinfo, userGeometry);
 
-    // printf("geometry.width():%d\t geometry.height():%d\n",geometry.width(),geometry.height());
-
     // mGeometry = QRect(QPoint(0, 0), geometry.size());
    bool rotation90 = qgetenv("QT_QPA_FB_ROTATION90").toInt();
-   printf("rotation90 is:%d\n",(int)rotation90);
+   // printf("rotation90 is:%d\n",(int)rotation90);
    bool rotation270 = qgetenv("QT_QPA_FB_ROTATION270").toInt();
-   printf("rotation270 is:%d\n",(int)rotation270);
+   // printf("rotation270 is:%d\n",(int)rotation270);
 
    if(rotation270 || rotation90)
    {
@@ -392,8 +390,6 @@ bool QLinuxFbScreen::initialize()
             rotate = 1;
         else
             rotate = 3;
-        // the original QRect() is QRect(int x,int y,int width,int height)
-        //         <==>QRect(QPoint(x,y),QSize(width,height))
         mGeometry = QRect(0,0,geometry.height(),geometry.width());
         qreal w = mPhysicalSize.height();
         qreal h = mPhysicalSize.width();
@@ -404,8 +400,6 @@ bool QLinuxFbScreen::initialize()
         mGeometry = QRect(0,0,geometry.width(),geometry.height());
    }
     
-
-    // printf("mGeometry.width():%d\t mGeometry.height():%d\n",mGeometry.width(),mGeometry.height());
     mFormat = determineFormat(vinfo, mDepth);
     mPhysicalSize = determinePhysicalSize(vinfo, userMmSize, geometry.size());
 
@@ -455,27 +449,8 @@ bool QLinuxFbScreen::initialize()
 }
 
 
-/*static void rotateAndPaintImage(QPainter *painter,const QImage *img,const QSizeF &realSize,const QRect &r,int angle)
-{
-    int cx = realSize.width()/2;
-    int cy = realSize.height()/2;
-    QRect rotatedRect(0,0,realSize.width(),realSize.height());
-
-    painter->save();
-    painter->translate(cx,cy);
-    painter->rotate(angle);
-    painter->translate(-cx,-cy);
-    painter->drawImage(rotatedRect,*img,r);
-    painter->restore();
-    return;
-}*/
-
 QRegion QLinuxFbScreen::doRedraw()
 {
-    // int x,y,w,h;
-    // QRect destRect;
-    // QMatrix matrix;
-    // QImage newImage;  
 
     QRegion touched = QFbScreen::doRedraw();
 
@@ -487,10 +462,8 @@ QRegion QLinuxFbScreen::doRedraw()
 
     mBlitter->setRenderHint(QPainter::Antialiasing);
     QVector<QRect> rects = touched.rects();
-    // for (int i = 0; i < rects.size(); i++)
-        // mBlitter->drawImage(rects[i], *mScreenImage, rects[i]);
-    printf("rects.size() is :%d\n",rects.size());
-    printf("mPhysicalSize width:%d\t mPhysicalSize height:%d\n",mPhysicalSize.width(),mPhysicalSize.height());
+    // printf("rects.size() is :%d\n",rects.size());
+    // printf("mPhysicalSize width:%d\t mPhysicalSize height:%d\n",mPhysicalSize.width(),mPhysicalSize.height());
 
     for (int i = 0; i < rects.size(); ++i)
     {
@@ -498,31 +471,22 @@ QRegion QLinuxFbScreen::doRedraw()
         {
             case 0:
                 mBlitter->drawImage(rects[i], *mScreenImage, rects[i]);
-                // MyCopyImage(mScreenImage, &mFbScreenImage, rects[i]);
                 break;
 
             case 1:
-
-                // rotateAndPaintImage(mBlitter,mScreenImage,mPhysicalSize,rects[i],90);
                 mBlitter->save();
                 mBlitter->translate(mGeometry.height(),0);
                 mBlitter->rotate(90);
-                // mBlitter->translate(-(mPhysicalSize.height()/2),-(mPhysicalSize.width()/2) );
                 mBlitter->drawImage(rects[i],*mScreenImage,rects[i]);
                 mBlitter->restore();
-                // MyCopyImage_90(mScreenImage,&mFbScreenImage,rects[i],1);
                 break;
 
             case 3:
-                // rotateAndPaintImage(mBlitter,mScreenImage,mPhysicalSize,rects[i],270);
-
                 mBlitter->save();
                 mBlitter->translate(0,mGeometry.width());
                 mBlitter->rotate(270);
-                // mBlitter->translate(-(mPhysicalSize.width()/2),-(mPhysicalSize.height()/2) );
                 mBlitter->drawImage(rects[i],*mScreenImage,rects[i]);
                 mBlitter->restore();
-                // MyCopyImage_90(mScreenImage,&mFbScreenImage,rects[i],0);
                 break;
         }
     }
